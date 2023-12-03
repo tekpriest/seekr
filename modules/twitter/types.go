@@ -1,7 +1,6 @@
 package twitter
 
 import (
-	"net/http"
 	"time"
 )
 
@@ -78,7 +77,7 @@ type IncludeUser struct {
 	Username    string    `json:"username"`
 }
 
-type Tweet struct {
+type TweetAPI struct {
 	AuthorID          string              `json:"author_id"`
 	CreatedAt         time.Time           `json:"created_at"`
 	Entities          TwitterEntities     `json:"entities"`
@@ -90,7 +89,7 @@ type Tweet struct {
 }
 
 type (
-	IncludeTweet Tweet
+	IncludeTweet TweetAPI
 	Include      struct {
 		Media  []IncludeMedia `json:"media"`
 		User   []IncludeUser  `json:"user"`
@@ -100,46 +99,6 @@ type (
 
 type Geo struct {
 	PlaceID string `json:"place_id"`
-}
-
-type TwitterRecentSearchResponseData struct {
-	Tweet
-	Attachments       []Attachment `json:"attachments"`
-	PossiblySensitive bool         `json:"possibly_sensitive"`
-	InReplyToUserID   string       `json:"in_reply_to_user_id"`
-	Geo               Geo          `json:"geo"`
-}
-
-type ResponseMeta struct {
-	NewestID    string
-	OldestID    string
-	ResultCount int
-	NextToken   string
-}
-
-type TwitterRecentSearchResponse struct {
-	Data     TwitterRecentSearchResponseData `json:"data"`
-	Includes []Include                       `json:"includes"`
-	Meta     ResponseMeta                    `json:"meta"`
-}
-
-type TwitterService interface {
-	RecentSearch(q TwitterRecentSearchQuery) (*TwitterRecentSearchResponse, error)
-}
-
-type TwitterRecentSearchQuery struct {
-	Query           string    `json:"query"`
-	TweetFields     []string  `json:"tweet_fields"`
-	StartTime       time.Time `json:"start_time"`
-	EndTime         time.Time `json:"end_time"`
-	SinceID         string    `json:"since_id"`
-	UntilID         string    `json:"until_id"`
-	MaxResults      string    `json:"max_results"`
-	NextToken       string    `json:"next_token"`
-	ExpansionFields []string  `json:"expansions"`
-	PlaceFields     []string  `json:"place_fields"`
-	PollFields      []string  `json:"poll_fields"`
-	UserFields      []string  `json:"user_fields"`
 }
 
 var AllowedTweetFields = []string{
@@ -220,20 +179,4 @@ var AllowedUserFields = []string{
 	"username",
 	"verified",
 	"withheld",
-}
-
-type TransportClient struct {
-	BaseURL string
-	Headers map[string]string
-	*http.Client
-}
-
-type Twitter struct {
-	ConsumerKey    string `json:"consumer_key"`
-	ConsumerSecret string `json:"consumer_secret"`
-	AccessToken    string `json:"access_token"`
-	TokenSecret    string `json:"token_secret"`
-	BeaerToken     string
-	BaseURL        string
-	Client         TransportClient
 }
