@@ -5,5 +5,3 @@ type TwitterRepository interface {
 	SaveTweet(tweet TweetAPI) error
 	GetByTag(tag string) ([]Tweet, error)
 }
-
-// type TwitterAPIRepository interface {}
