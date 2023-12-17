@@ -165,8 +165,6 @@ func (t *TwitterAPIRepository) doGetRequest(path string, q url.Values) ([]byte, 
 	return body, nil
 }
 
-func (t *TwitterAPIRepository) addHeaders() { }
-
 func (t *TwitterAPIRepository) doPostRequest(path string, q url.Values) ([]byte, error) {
 	url := t.c.BaseURL + path
 

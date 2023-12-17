@@ -1,7 +1,11 @@
 package twitter
 
 import (
+	"context"
+
+	"github.com/lucsky/cuid"
 	"github.com/tekpriest/seekr/config"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type TwitterService struct {
@@ -41,4 +45,40 @@ func RegisterTwitterAPIService(c *config.Config) TwitterServiceConfiguration {
 
 		return nil
 	}
+}
+
+func (t *TwitterService) Search(q TwitterRecentSearchQuery) (TwitterRecentSearchResponse, error) {
+	response, err := t.TAR.RecentSearch(q)
+	if err != nil {
+		return TwitterRecentSearchResponse{}, err
+	}
+
+	return *response, nil
+}
+
+func (t *TwitterService) Save(keyword string) (TwitterRecentSearchResponse, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var search SaveQuery
+	result := t.MR.DB.Collection("tweets").FindOne(ctx, bson.D{{Key: "searchKey", Value: keyword}})
+	if err := result.Decode(&search); err != nil {
+		return TwitterRecentSearchResponse{}, err
+	}
+
+	q := TwitterRecentSearchQuery{
+		Query: keyword,
+	}
+	// TODO: save if not
+	// TODO: create a cron job based on the keyword
+	response, err := t.Search(q)
+	if err != nil {
+		return TwitterRecentSearchResponse{}, err
+	}
+	newTweet := Tweet{ID: cuid.New()}
+	_, err = t.MR.DB.Collection("tweets").InsertOne(ctx, newTweet)
+	if err != nil {
+		return TwitterRecentSearchResponse{}, err
+	}
+	return response, nil
 }

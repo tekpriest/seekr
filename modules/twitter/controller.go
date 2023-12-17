@@ -1,17 +1,10 @@
 package twitter
 
 import (
-	"context"
-
 	"github.com/kataras/iris/mvc"
 	"github.com/kataras/iris/v12"
 	"github.com/robfig/cron"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-)
-
-var (
-	pathSaveKeyword = mvc.Response{}
 )
 
 type SaveQuery struct {
@@ -21,7 +14,8 @@ type SaveQuery struct {
 }
 
 type TwitterController interface {
-	Save() string
+	Save() (TwitterRecentSearchResponse, string)
+	Search() (TwitterRecentSearchResponse, string)
 }
 
 type twitterController struct {
@@ -31,34 +25,50 @@ type twitterController struct {
 	ctx iris.Context
 }
 
-func (t *twitterController) Search() {}
-
-func (t *twitterController) Save() string {
-	var query interface{}
+func (t *twitterController) Search() (TwitterRecentSearchResponse, string) {
+	var query TwitterRecentSearchQuery
 	if err := t.ctx.ReadQuery(&query); err != nil {
-		return err.Error()
+		return TwitterRecentSearchResponse{}, err.Error()
+	}
+	data, err := t.s.Search(query)
+	if err != nil {
+		return TwitterRecentSearchResponse{}, err.Error()
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	return data, ""
+}
 
-	keyword := query["keyword"]
-
-	var search SaveQuery
-	// TODO: check if keyword exists
-	result := t.db.FindOne(ctx, bson.D{{Key: "searchKey", Value: keyword}})
-	if err := result.Decode(&search); err != nil {
-		return err.Error()
+func (t *twitterController) Save() (TwitterRecentSearchResponse, string) {
+	var query map[string]interface{}
+	if err := t.ctx.ReadQuery(&query); err != nil {
+		return TwitterRecentSearchResponse{}, err.Error()
 	}
-	// TODO: save if not
-	// TODO: create a cron job based on the keyword
 
-	return "saved"
+	keyword := query["keyword"].(string)
+
+	data, err := t.s.Save(keyword)
+	if err != nil {
+		return TwitterRecentSearchResponse{}, err.Error()
+	}
+
+	if err := t.RunQueryUpdates(keyword); err != nil {
+		return data, err.Error()
+	}
+
+	return data, "saved"
 }
 
 func (t *twitterController) RunQueryUpdates(keyword string) (err error) {
-	t.c.AddFunc("@every 5m", func() {
-	})
+	if err := t.c.AddFunc("@every 5m", func() {
+		_, err := t.s.Save(keyword)
+		if err != nil {
+			return
+		}
+	}); err == nil {
+		t.c.Start()
+	} else {
+		return err
+	}
 
 	return
 }

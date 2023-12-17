@@ -13,7 +13,6 @@ import (
 type MongoRepository struct {
 	DB *mongo.Database
 }
-type twitterRepo struct {}
 
 func NewDatabaseConnection(c *config.Config) (*MongoRepository, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 15)
